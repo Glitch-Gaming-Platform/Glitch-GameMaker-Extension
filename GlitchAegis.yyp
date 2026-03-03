@@ -1,0 +1,29 @@
+{
+  "resources": [
+    {"id":{"name":"GlitchAegis","path":"extensions/GlitchAegis/GlitchAegis.yy",},"order":1,},
+    {"id":{"name":"obj_glitch_manager","path":"objects/obj_glitch_manager/obj_glitch_manager.yy",},"order":2,},
+    {"id":{"name":"rm_glitch_init","path":"rooms/rm_glitch_init/rm_glitch_init.yy",},"order":3,},
+  ],
+  "Options": [
+    {"name":"Main","path":"options/main/options_main.yy",},
+    {"name":"Windows","path":"options/windows/options_windows.yy",},
+    {"name":"HTML5","path":"options/html5/options_html5.yy",},
+  ],
+  "isDnDProject": false,
+  "isEcma": false,
+  "configs": {
+    "name": "Default",
+    "children": [],
+  },
+  "RoomOrderNodes": [
+    {"roomId":{"name":"rm_glitch_init","path":"rooms/rm_glitch_init/rm_glitch_init.yy",},},
+  ],
+  "Folders": [
+    {"folderPath":"folders/Extensions.yy","order":1,"name":"Extensions","resourceType":"GMFolder",},
+    {"folderPath":"folders/Objects.yy","order":2,"name":"Objects","resourceType":"GMFolder",},
+    {"folderPath":"folders/Rooms.yy","order":3,"name":"Rooms","resourceType":"GMFolder",},
+  ],
+  "resourceVersion": "1.4",
+  "name": "GlitchAegis",
+  "resourceType": "GMProject",
+}
