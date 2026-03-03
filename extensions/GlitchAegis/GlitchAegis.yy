@@ -2,7 +2,8 @@
   "optionsFile": "options.json",
   "options": [
     {"name":"title_id","type":2,"value":"","description":"The UUID of your game title from the Glitch Dashboard","resourceType":"GMExtensionOption",},
-    {"name":"title_token","type":2,"value":"","description":"The Title Token generated in the Technical Integration tab","resourceType":"GMExtensionOption",}
+    {"name":"title_token","type":2,"value":"","description":"The Title Token generated in the Technical Integration tab","resourceType":"GMExtensionOption",},
+    {"name":"target_room","type":2,"value":"rm_main_menu","description":"The name of the room to go to after initialization","resourceType":"GMExtensionOption",}
   ],
   "exportToGame": true,
   "supportedTargets": -1,
@@ -23,7 +24,9 @@
       "filename": "glitch_bridge.js",
       "kind": 5,
       "functions": [
-        {"name":"glitch_js_get_url_param","externalName":"glitch_js_get_url_param","kind":5,"help":"","returnType":1,"argCount":1,"args":[1],"resourceType":"GMExtensionFunction",}
+        {"name":"glitch_js_get_url_param","externalName":"glitch_js_get_url_param","kind":5,"help":"","returnType":1,"argCount":1,"args":[1],"resourceType":"GMExtensionFunction",},
+        {"name":"glitch_js_get_user_agent","externalName":"glitch_js_get_user_agent","kind":5,"help":"","returnType":1,"argCount":0,"args":[],"resourceType":"GMExtensionFunction",},
+        {"name":"glitch_js_get_screen_info","externalName":"glitch_js_get_screen_info","kind":5,"help":"","returnType":1,"argCount":0,"args":[],"resourceType":"GMExtensionFunction",}
       ],
       "resourceType": "GMExtensionFile"
     }
