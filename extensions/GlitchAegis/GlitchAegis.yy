@@ -1,9 +1,27 @@
 {
   "optionsFile": "options.json",
   "options": [
-    {"name":"title_id","type":2,"value":"","description":"The UUID of your game title from the Glitch Dashboard","resourceType":"GMExtensionOption",},
-    {"name":"title_token","type":2,"value":"","description":"The Title Token generated in the Technical Integration tab","resourceType":"GMExtensionOption",},
-    {"name":"target_room","type":2,"value":"rm_main_menu","description":"The name of the room to go to after initialization","resourceType":"GMExtensionOption",}
+    {
+      "name": "title_id",
+      "type": 2,
+      "value": "",
+      "description": "The UUID of your game title (e.g., 550e8400-e29b...)",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "title_token",
+      "type": 2,
+      "value": "",
+      "description": "The Title Token generated in the Technical Integration tab",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "target_room",
+      "type": 2,
+      "value": "rm_main_menu",
+      "description": "The name of the room to go to after initialization",
+      "resourceType": "GMExtensionOption"
+    }
   ],
   "exportToGame": true,
   "supportedTargets": -1,
