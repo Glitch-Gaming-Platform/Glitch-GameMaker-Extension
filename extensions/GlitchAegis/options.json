@@ -10,5 +10,17 @@
     {
         "name": "target_room",
         "value": "rm_main_menu"
+    },
+    {
+        "name": "enable_auto_heartbeat",
+        "value": "True"
+    },
+    {
+        "name": "enforce_validation",
+        "value": "False"
+    },
+    {
+        "name": "dev_test_install_id",
+        "value": ""
     }
 ]
