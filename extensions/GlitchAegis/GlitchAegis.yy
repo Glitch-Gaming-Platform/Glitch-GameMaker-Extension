@@ -5,48 +5,76 @@
       "name": "title_id",
       "type": 2,
       "value": "",
-      "description": "Your Glitch Title ID (UUID). Found in your Glitch Developer Dashboard.",
+      "description": "Your Glitch Title ID (UUID). Found on the Glitch Developer Dashboard.",
       "resourceType": "GMExtensionOption"
     },
     {
       "name": "title_token",
       "type": 2,
       "value": "",
-      "description": "Your Title Token. Generated in the Technical Integration tab of your title.",
+      "description": "Your private Title Token. Generated on the dashboard Technical page.",
       "resourceType": "GMExtensionOption"
     },
     {
       "name": "target_room",
       "type": 2,
       "value": "rm_main_menu",
-      "description": "The name of the room to transition to after successful initialization (e.g. rm_main_menu).",
+      "description": "Room to go to after successful initialization (e.g. rm_main_menu).",
       "resourceType": "GMExtensionOption"
     },
     {
       "name": "enable_auto_heartbeat",
       "type": 3,
       "value": "True",
-      "description": "When ON, automatically sends a playtime heartbeat every 60 seconds to earn payouts. When OFF, call glitch_send_heartbeat() manually.",
+      "description": "When ON, automatically sends a playtime heartbeat every 60s to earn $0.10/hr payouts.",
       "resourceType": "GMExtensionOption"
     },
     {
       "name": "enforce_validation",
       "type": 3,
       "value": "False",
-      "description": "When ON, the game will display a blocking error screen if the player's license is invalid or the game was not launched from Glitch. Recommended for DRM-protected titles.",
+      "description": "When ON, blocks the game with an error screen if the license is invalid.",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "enable_achievements",
+      "type": 3,
+      "value": "True",
+      "description": "When ON, auto-loads achievement data on startup. Use glitch_report_achievement() to unlock.",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "enable_leaderboards",
+      "type": 3,
+      "value": "True",
+      "description": "When ON, enables glitch_submit_score() and glitch_get_leaderboard().",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "enable_cloud_saves",
+      "type": 3,
+      "value": "True",
+      "description": "When ON, enables glitch_cloud_save() and glitch_cloud_load().",
+      "resourceType": "GMExtensionOption"
+    },
+    {
+      "name": "enable_steam_bridge",
+      "type": 3,
+      "value": "False",
+      "description": "When ON, use glitch_steam_* functions as drop-in replacements for Steam API calls.",
       "resourceType": "GMExtensionOption"
     },
     {
       "name": "dev_test_install_id",
       "type": 2,
       "value": "",
-      "description": "Developer testing only. Enter a valid install_id here to bypass URL detection during local testing. Leave blank for production builds.",
+      "description": "Dev testing only. Paste a valid install_id to bypass URL detection during local testing.",
       "resourceType": "GMExtensionOption"
     }
   ],
   "exportToGame": true,
   "supportedTargets": -1,
-  "extensionVersion": "2.0.0",
+  "extensionVersion": "3.0.0",
   "files": [
     {
       "filename": "glitch_aegis.gml",
@@ -83,6 +111,106 @@
           "resourceType": "GMExtensionFunction"
         },
         {
+          "name": "glitch_load_achievements",
+          "externalName": "glitch_load_achievements",
+          "kind": 2,
+          "help": "glitch_load_achievements() — Downloads the player's achievement list. Returns HTTP request ID.",
+          "returnType": 1,
+          "argCount": 0,
+          "args": [],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_report_achievement",
+          "externalName": "glitch_report_achievement",
+          "kind": 2,
+          "help": "glitch_report_achievement(api_key, value) — Reports progress toward an achievement.",
+          "returnType": 1,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_is_achievement_unlocked",
+          "externalName": "glitch_is_achievement_unlocked",
+          "kind": 2,
+          "help": "glitch_is_achievement_unlocked(api_key) — Returns true if the achievement is unlocked (local cache).",
+          "returnType": 2,
+          "argCount": 1,
+          "args": [1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_get_achievement_progress",
+          "externalName": "glitch_get_achievement_progress",
+          "kind": 2,
+          "help": "glitch_get_achievement_progress(api_key) — Returns the progress value (local cache).",
+          "returnType": 2,
+          "argCount": 1,
+          "args": [1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_submit_score",
+          "externalName": "glitch_submit_score",
+          "kind": 2,
+          "help": "glitch_submit_score(board_key, score) — Submits a score to a leaderboard.",
+          "returnType": 1,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_get_leaderboard",
+          "externalName": "glitch_get_leaderboard",
+          "kind": 2,
+          "help": "glitch_get_leaderboard(board_key) — Downloads leaderboard entries. Returns HTTP request ID.",
+          "returnType": 1,
+          "argCount": 1,
+          "args": [1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_cloud_save",
+          "externalName": "glitch_cloud_save",
+          "kind": 2,
+          "help": "glitch_cloud_save(slot, json_data) — Saves a JSON string to a cloud slot (0-99).",
+          "returnType": 1,
+          "argCount": 2,
+          "args": [2, 1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_cloud_save_map",
+          "externalName": "glitch_cloud_save_map",
+          "kind": 2,
+          "help": "glitch_cloud_save_map(slot, ds_map) — Saves a ds_map to a cloud slot (auto-encodes to JSON).",
+          "returnType": 1,
+          "argCount": 2,
+          "args": [2, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_cloud_load",
+          "externalName": "glitch_cloud_load",
+          "kind": 2,
+          "help": "glitch_cloud_load() — Downloads all cloud save slots. Check global.glitch_cloud_response.",
+          "returnType": 1,
+          "argCount": 0,
+          "args": [],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_cloud_parse_slot",
+          "externalName": "glitch_cloud_parse_slot",
+          "kind": 2,
+          "help": "glitch_cloud_parse_slot(response_json, slot_index) — Extracts decoded data from a cloud slot.",
+          "returnType": 1,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
           "name": "glitch_track_event",
           "externalName": "glitch_track_event",
           "kind": 2,
@@ -93,10 +221,80 @@
           "resourceType": "GMExtensionFunction"
         },
         {
+          "name": "glitch_steam_set_achievement",
+          "externalName": "glitch_steam_set_achievement",
+          "kind": 2,
+          "help": "glitch_steam_set_achievement(api_name) — Steam Bridge: buffers an achievement unlock.",
+          "returnType": 2,
+          "argCount": 1,
+          "args": [1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_set_stat_int",
+          "externalName": "glitch_steam_set_stat_int",
+          "kind": 2,
+          "help": "glitch_steam_set_stat_int(stat_name, value) — Steam Bridge: buffers an integer stat.",
+          "returnType": 2,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_set_stat_float",
+          "externalName": "glitch_steam_set_stat_float",
+          "kind": 2,
+          "help": "glitch_steam_set_stat_float(stat_name, value) — Steam Bridge: buffers a float stat.",
+          "returnType": 2,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_upload_score",
+          "externalName": "glitch_steam_upload_score",
+          "kind": 2,
+          "help": "glitch_steam_upload_score(board_key, score) — Steam Bridge: buffers a leaderboard score.",
+          "returnType": 2,
+          "argCount": 2,
+          "args": [1, 2],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_get_achievement",
+          "externalName": "glitch_steam_get_achievement",
+          "kind": 2,
+          "help": "glitch_steam_get_achievement(api_name) — Steam Bridge: checks if achievement is unlocked.",
+          "returnType": 2,
+          "argCount": 1,
+          "args": [1],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_store_stats",
+          "externalName": "glitch_steam_store_stats",
+          "kind": 2,
+          "help": "glitch_steam_store_stats() — Steam Bridge: flushes all buffered stats/scores to Glitch.",
+          "returnType": 2,
+          "argCount": 0,
+          "args": [],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
+          "name": "glitch_steam_request_stats",
+          "externalName": "glitch_steam_request_stats",
+          "kind": 2,
+          "help": "glitch_steam_request_stats() — Steam Bridge: refreshes achievement cache from Glitch.",
+          "returnType": 2,
+          "argCount": 0,
+          "args": [],
+          "resourceType": "GMExtensionFunction"
+        },
+        {
           "name": "glitch_show_error",
           "externalName": "glitch_show_error",
           "kind": 2,
-          "help": "glitch_show_error(message) — Shows the Glitch error overlay with a custom message.",
+          "help": "glitch_show_error(message) — Shows the error overlay.",
           "returnType": 2,
           "argCount": 1,
           "args": [1],
@@ -106,7 +304,7 @@
           "name": "glitch_dismiss_error",
           "externalName": "glitch_dismiss_error",
           "kind": 2,
-          "help": "glitch_dismiss_error() — Dismisses the error overlay (only works if EnforceValidation is OFF).",
+          "help": "glitch_dismiss_error() — Dismisses the error overlay (if enforce_validation is OFF).",
           "returnType": 2,
           "argCount": 0,
           "args": [],

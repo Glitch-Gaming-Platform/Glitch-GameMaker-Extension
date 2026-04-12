@@ -20,6 +20,22 @@
         "value": "False"
     },
     {
+        "name": "enable_achievements",
+        "value": "True"
+    },
+    {
+        "name": "enable_leaderboards",
+        "value": "True"
+    },
+    {
+        "name": "enable_cloud_saves",
+        "value": "True"
+    },
+    {
+        "name": "enable_steam_bridge",
+        "value": "False"
+    },
+    {
         "name": "dev_test_install_id",
         "value": ""
     }

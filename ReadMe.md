@@ -1,201 +1,315 @@
-# Glitch Aegis — GameMaker Extension v2.0
+# Glitch GameMaker Extension v3.0.0
 
-The **Glitch Aegis Extension** connects your GameMaker game to the [Glitch Gaming Platform](https://glitch.fun). It handles **playtime payouts**, **DRM license validation**, and **behavioral analytics** — all with a no-code setup that takes about 5 minutes.
-
----
-
-## What Does This Extension Do?
-
-When a player launches your game through Glitch.fun, they receive a unique **session ID** called an `install_id`. Glitch Aegis reads that ID and uses it to:
-
-- **Record active playtime** — Every 60 seconds, the extension sends a "heartbeat" signal to Glitch. This is what earns you the **$0.10/hr developer payout**.
-- **Validate the player's license** — Glitch checks whether this player has a valid Premium, Rental, or Subscription license for your game.
-- **Track in-game events** — Optional analytics to see where players quit, die, or complete levels.
-
-> **No code required** for the core features. Just configure three fields and drag one room to the top of your room list.
+The official [Glitch](https://glitch.fun) extension for **GameMaker**. Zero-code heartbeat payouts and DRM, with simple one-line GML calls for achievements, leaderboards, cloud saves, and analytics. Includes a Steam-to-Glitch bridge for easy migration.
 
 ---
 
 ## Installation
 
-### Step 1 — Download the Extension
-
-Download this repository as a ZIP file and extract it. You'll see folders like `extensions/`, `objects/`, and `rooms/`.
-
-### Step 2 — Copy Files Into Your Project
-
-Copy these three folders into your GameMaker project directory (the folder containing your `.yyp` file):
-
-```
-extensions/GlitchAegis/
-objects/obj_glitch_manager/
-rooms/rm_glitch_init/
-```
-
-### Step 3 — Add Assets in GameMaker
-
-Open GameMaker. In the **Asset Browser** on the right side:
-
-1. Right-click **Extensions** → **Add Existing** → navigate to `extensions/GlitchAegis/GlitchAegis.yy`
-2. Right-click **Objects** → **Add Existing** → navigate to `objects/obj_glitch_manager/obj_glitch_manager.yy`
-3. Right-click **Rooms** → **Add Existing** → navigate to `rooms/rm_glitch_init/rm_glitch_init.yy`
-
-### Step 4 — Move `rm_glitch_init` to the Top
-
-Open the **Room Manager** (in the menu: **Tools → Room Manager**, or press the room order button). Drag `rm_glitch_init` all the way to the **top of the list**. This ensures it loads first, before any of your game rooms.
+1. Download or clone this repository.
+2. Copy the `extensions/GlitchAegis` folder into your project's `extensions/` directory.
+3. Copy the `objects/obj_glitch_manager` folder into your project's `objects/` directory.
+4. Copy the `rooms/rm_glitch_init` folder into your project's `rooms/` directory.
+5. In GameMaker, open the **Room Manager** and drag `rm_glitch_init` to the **very top** of the room order.
+6. Double-click the **GlitchAegis** extension and configure your settings (see below).
 
 ---
 
-## Configuration (Required)
+## Quick Start (3 Steps)
 
-You must enter your Glitch credentials before the extension will work.
+### Step 1: Get Your Credentials
 
-1. In the Asset Browser, click on **GlitchAegis** under Extensions.
-2. In the Extension Properties panel, click the **Options** tab (or gear icon).
-3. Fill in the following fields:
+1. Go to [glitch.fun](https://glitch.fun) → **My Games** → select your game.
+2. Open the **Technical Integration** page.
+3. Copy your **Title ID**, **Title Token**, and **Developer Test Install ID**.
 
-| Option | Where to Find It | Example |
-|--------|-----------------|---------|
-| `title_id` | Glitch Dashboard → your game → URL | `550e8400-e29b-41d4-a716-446655440000` |
-| `title_token` | Glitch Dashboard → Technical Integration tab | `eyJhbGci...` |
-| `target_room` | The name of your first game room | `rm_main_menu` |
+### Step 2: Configure the Extension
 
-> 💡 **Tip:** The `target_room` is the room your game normally starts in — your main menu, splash screen, etc. After Aegis initializes, it will automatically navigate there.
+Double-click the **GlitchAegis** extension in GameMaker. Click the **Cog Icon** and fill in:
 
----
+| Option | What to Enter |
+|--------|--------------|
+| **title_id** | Your UUID from the dashboard |
+| **title_token** | Your private API token |
+| **target_room** | The room to go to after init (e.g. `rm_main_menu`) |
+| **dev_test_install_id** | Your dev test ID (for F5 playtesting) |
 
-## All Extension Options
+Toggle features ON/OFF:
 
-Here is the full list of options, what they do, and when to change them:
+| Option | Default | What It Does |
+|--------|---------|-------------|
+| **enable_auto_heartbeat** | ✅ ON | Earns $0.10/hr payouts automatically |
+| **enforce_validation** | ❌ OFF | Blocks game if license is invalid |
+| **enable_achievements** | ✅ ON | Auto-loads achievement data on startup |
+| **enable_leaderboards** | ✅ ON | Enables score submission functions |
+| **enable_cloud_saves** | ✅ ON | Enables cloud save/load functions |
+| **enable_steam_bridge** | ❌ OFF | Enables Steam-to-Glitch replacement functions |
 
-### `title_id` *(String, required)*
-Your game's unique ID on the Glitch platform. This is a UUID that looks like `550e8400-e29b-41d4-...`. Find it in your Glitch Developer Dashboard.
+### Step 3: Set Room Order
 
-### `title_token` *(String, required)*
-A secret token that proves you are the developer of this title. Find it in the **Technical Integration** tab of your game's dashboard page. Keep this private — do not share it publicly.
+Open the **Room Manager** and drag `rm_glitch_init` to the top. The game will validate the license and start payouts before moving to your game.
 
-### `target_room` *(String, default: `rm_main_menu`)*
-The name of the room to navigate to after initialization is complete. This should be your game's main menu or first real room. Must match the exact name of the room in your Asset Browser.
-
-### `enable_auto_heartbeat` *(Boolean, default: ON)*
-When **ON**, the extension automatically sends a heartbeat signal to Glitch every 60 seconds in the background. This is what generates your **$0.10/hr payout** — so leave it ON unless you have a specific reason to disable it.
-
-When **OFF**, you are responsible for calling `glitch_send_heartbeat()` yourself in your game code.
-
-### `enforce_validation` *(Boolean, default: OFF)*
-When **OFF** *(recommended for most games)*: The extension still validates the license, but if it fails, the game continues anyway. This is useful for games that can be played both on Glitch and elsewhere.
-
-When **ON**: If the license check fails (or the game is launched without a Glitch session), the extension shows a **blocking error screen** and prevents the player from continuing. Use this for DRM-protected titles that should only run through Glitch.
-
-### `dev_test_install_id` *(String, default: empty)*
-For **local development only**. When you test your game inside GameMaker (by pressing the Play button), there is no Glitch session — so no `install_id` is available. Fill this field with a real `install_id` from a test session to simulate a Glitch launch.
-
-**⚠️ Important:** Clear this field before you release your game. If you leave a test ID in this field in your published build, all players will appear to be the same test user.
+**That's it!** Heartbeat and DRM work with zero code.
 
 ---
 
-## How It All Works Together
+## Achievements
 
-Here is what happens when a player plays your game through Glitch:
+### Dashboard Setup
 
-```
-Player clicks "Play" on Glitch.fun
-    ↓
-Browser opens your game URL with ?install_id=XXXX in the address bar
-    ↓
-rm_glitch_init loads first (because you put it at the top)
-    ↓
-obj_glitch_manager runs glitch_init()
-    → Reads your title_id, title_token from Extension Options
-    → Reads install_id from the URL
-    ↓
-Sends a validation request to Glitch API
-    → 200 OK + valid=true → moves to your target_room ✅
-    → 403 Forbidden → shows error (if EnforceValidation ON) or continues anyway
-    ↓
-Every 60 seconds: sends heartbeat → earns $0.10/hr payout 💰
-```
+Define achievements on the Glitch dashboard with an **API Key** (e.g. `boss_killed`) and an **Unlock Threshold** (e.g. `1`).
 
----
-
-## Optional: Tracking In-Game Events
-
-You can send behavioral analytics events to Glitch to see where players drop off. Call `glitch_track_event()` anywhere in your GML:
+### Usage (One Line)
 
 ```gml
-// When the player starts a level
-glitch_track_event("level_1", "started");
+// Player beat the first boss:
+glitch_report_achievement("boss_killed", 1);
 
-// When the player dies
-glitch_track_event("level_1", "died");
-
-// When the player completes a level
-glitch_track_event("level_1", "completed");
-
-// When the player reaches the final boss
-glitch_track_event("boss_fight", "started");
+// Player collected their 50th coin (cumulative):
+glitch_report_achievement("coin_collector", 50);
 ```
 
-The first argument is the **step** (a screen or stage name), and the second is the **action**. You can use any strings you like — they'll appear in your Glitch Analytics dashboard.
-
----
-
-## Optional: Manual Heartbeat Control
-
-If you turned `enable_auto_heartbeat` **OFF**, you must call this yourself:
+### Checking Status
 
 ```gml
-// In an alarm or step event — fire this every 60 seconds
-glitch_send_heartbeat();
+// In a conditional:
+if (glitch_is_achievement_unlocked("boss_killed")) {
+    // Show golden trophy sprite
+}
+
+// Get progress value:
+var _progress = glitch_get_achievement_progress("coin_collector");
 ```
 
 ---
 
-## Local Testing / Developer Mode
+## Leaderboards
 
-To test locally without a real Glitch session:
+### Dashboard Setup
 
-1. Log into Glitch.fun and start a session for your game.
-2. Copy the `install_id` from the URL (it looks like a UUID after `?install_id=`).
-3. Paste it into the `dev_test_install_id` Extension Option.
-4. Press Play in GameMaker — the extension will use that ID instead of reading the URL.
+Define leaderboards on the dashboard with an **API Key** and **Sort Order**.
 
-Remember to **clear this field before publishing**.
+### Submitting Scores
+
+```gml
+// Submit a score directly:
+glitch_submit_score("high_score", 5000);
+
+// Submit from a variable:
+glitch_submit_score("high_score", global.player_score);
+```
+
+### Downloading Scores
+
+```gml
+// Request the leaderboard data:
+leaderboard_req = glitch_get_leaderboard("high_score");
+
+// In the Async HTTP Event, check:
+// global.glitch_leaderboard_response contains the JSON
+```
+
+---
+
+## Cloud Saves
+
+### Saving Data
+
+```gml
+// Option 1: Save a JSON string
+var _json = json_stringify({
+    level: global.current_level,
+    hp: obj_player.hp,
+    coins: global.coins,
+    inventory: global.inventory
+});
+glitch_cloud_save(1, _json);
+
+// Option 2: Save a ds_map directly
+var _save = ds_map_create();
+ds_map_add(_save, "level", global.current_level);
+ds_map_add(_save, "hp", obj_player.hp);
+ds_map_add(_save, "coins", global.coins);
+glitch_cloud_save_map(1, _save);
+ds_map_destroy(_save);
+```
+
+### Loading Data
+
+```gml
+// Step 1: Request the download
+cloud_load_req = glitch_cloud_load();
+
+// Step 2: In the Async HTTP Event (or after it completes),
+//         parse the specific slot you want:
+var _data = glitch_cloud_parse_slot(global.glitch_cloud_response, 1);
+if (_data != "") {
+    var _save = json_decode(_data);
+    // Restore your game state from the map
+    global.current_level = ds_map_find_value(_save, "level");
+    obj_player.hp = ds_map_find_value(_save, "hp");
+    ds_map_destroy(_save);
+}
+```
+
+### Important Notes
+
+- **Slots**: 0-99 available. Use 0 for auto-save, 1+ for manual.
+- **Version tracking**: The extension tracks versions automatically to prevent conflicts.
+- **Guest players**: Cloud saves require a logged-in Glitch user (403 for guests).
+
+---
+
+## Steam-to-Glitch Migration
+
+If your game already uses **GameMaker's Steam API** functions, the Steam Bridge lets you redirect those calls to Glitch.
+
+### Prerequisites
+
+1. On the Glitch dashboard, create achievements and leaderboards with **the same API names** you used on Steam.
+2. Set **enable_steam_bridge** to **True** in the extension options.
+
+### Replace Your Steam Calls
+
+```gml
+// ─── BEFORE (Steam) ─────────────────────────
+steam_set_achievement("ACH_WIN_GAME");
+steam_set_stat_int("TotalKills", 150);
+steam_stats_store();
+
+// ─── AFTER (Glitch Bridge) ──────────────────
+glitch_steam_set_achievement("ACH_WIN_GAME");
+glitch_steam_set_stat_int("TotalKills", 150);
+glitch_steam_store_stats();
+```
+
+### Leaderboards
+
+```gml
+// ─── BEFORE (Steam) ─────────────────────────
+steam_upload_score("high_score", 5000);
+
+// ─── AFTER (Glitch Bridge) ──────────────────
+glitch_steam_upload_score("high_score", 5000);
+glitch_steam_store_stats();  // Flushes to Glitch
+```
+
+### Reading Achievements
+
+```gml
+if (glitch_steam_get_achievement("ACH_WIN_GAME")) {
+    // Show trophy
+}
+```
+
+### Using a Macro Switch
+
+For maintaining both Steam and Glitch builds from the same project, define a macro:
+
+```gml
+// In a script or macro definition:
+#macro USE_GLITCH true
+
+// Then in your game code:
+if (USE_GLITCH) {
+    glitch_steam_set_achievement("ACH_WIN_GAME");
+    glitch_steam_store_stats();
+} else {
+    steam_set_achievement("ACH_WIN_GAME");
+    steam_stats_store();
+}
+```
+
+### What the Bridge Handles
+
+| Steam Function | Bridge Equivalent | Notes |
+|---|---|---|
+| `steam_set_achievement(name)` | `glitch_steam_set_achievement(name)` | Buffered until store_stats |
+| `steam_get_achievement(name)` | `glitch_steam_get_achievement(name)` | Uses local cache |
+| `steam_set_stat_int(name, val)` | `glitch_steam_set_stat_int(name, val)` | Buffered |
+| `steam_set_stat_float(name, val)` | `glitch_steam_set_stat_float(name, val)` | Buffered |
+| `steam_upload_score(board, score)` | `glitch_steam_upload_score(board, score)` | Buffered |
+| `steam_stats_store()` | `glitch_steam_store_stats()` | Flushes all to Glitch |
+| `steam_stats_request()` | `glitch_steam_request_stats()` | Refreshes cache |
+
+---
+
+## Function Reference
+
+### Core (Automatic)
+
+| Function | Description |
+|----------|------------|
+| `glitch_init()` | Initializes the SDK. Called automatically by obj_glitch_manager. |
+| `glitch_send_heartbeat()` | Sends a playtime heartbeat. Auto-called every 60s. |
+| `glitch_validate_license()` | Validates the player's license. Auto-called on startup. |
+
+### Achievements
+
+| Function | Description |
+|----------|------------|
+| `glitch_report_achievement(api_key, value)` | Reports progress. Unlocks if threshold is met. |
+| `glitch_is_achievement_unlocked(api_key)` | Returns `true` if unlocked (local cache). |
+| `glitch_get_achievement_progress(api_key)` | Returns progress value (local cache). |
+| `glitch_load_achievements()` | Force-refresh from server. |
+
+### Leaderboards
+
+| Function | Description |
+|----------|------------|
+| `glitch_submit_score(board_key, score)` | Submits a score. |
+| `glitch_get_leaderboard(board_key)` | Downloads entries. Result in `global.glitch_leaderboard_response`. |
+
+### Cloud Saves
+
+| Function | Description |
+|----------|------------|
+| `glitch_cloud_save(slot, json_string)` | Saves a JSON string to a cloud slot. |
+| `glitch_cloud_save_map(slot, ds_map)` | Saves a ds_map (auto-encodes to JSON). |
+| `glitch_cloud_load()` | Downloads all slots. Result in `global.glitch_cloud_response`. |
+| `glitch_cloud_parse_slot(json, slot)` | Extracts decoded data from a specific slot. |
+
+### Analytics
+
+| Function | Description |
+|----------|------------|
+| `glitch_track_event(step_key, action_key)` | Tracks a player behavior event. |
+
+### Global Variables
+
+| Variable | Description |
+|----------|------------|
+| `global.glitch_install_id` | The current session UUID |
+| `global.glitch_validated` | `true` if DRM passed |
+| `global.glitch_player_name` | Player's Glitch display name |
+| `global.glitch_ach_loaded` | `true` once achievements are cached |
+| `global.glitch_cloud_response` | Raw JSON from last cloud load |
+| `global.glitch_leaderboard_response` | Raw JSON from last leaderboard download |
 
 ---
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Game stays on the init room forever | Check that `target_room` matches the exact room name in your Asset Browser (case-sensitive). |
-| Error screen appears saying "No valid session found" | Make sure you launched the game from Glitch.fun, or fill in `dev_test_install_id` for local testing. |
-| "401 Unauthorized" error | Your `title_token` is wrong or expired. Regenerate it in the Technical Integration tab. |
-| "422" error | Your `title_id` is malformed. Make sure it's a valid UUID from your dashboard. |
-| Heartbeat isn't sending | Verify `enable_auto_heartbeat` is ON and `title_id` / `title_token` are filled in. |
-| Error overlay can't be dismissed | If `enforce_validation` is ON, the overlay is intentionally permanent. Turn it OFF if you don't want to enforce DRM. |
+### "No install_id found" in output
 
----
+Normal when running locally. Paste your **dev_test_install_id** in the extension options.
 
-## GML Function Reference
+### Achievements return 403
 
-| Function | Description |
-|----------|-------------|
-| `glitch_init()` | Initializes the extension. Called automatically — you don't need to call this. |
-| `glitch_send_heartbeat()` | Sends a playtime heartbeat. Returns the HTTP request ID. |
-| `glitch_validate_license()` | Validates the player's license. Returns the HTTP request ID. |
-| `glitch_track_event(step, action)` | Sends a behavioral analytics event. |
-| `glitch_show_error(message)` | Shows the Glitch error overlay with a custom message. |
-| `glitch_dismiss_error()` | Dismisses the error overlay (only works if `enforce_validation` is OFF). |
+Player is a guest (not logged into Glitch). Show a "Log in to track progress" message.
+
+### Cloud save returns 409
+
+Version conflict — player saved on two devices. The console logs the conflict.
+
+### Target room not found
+
+Make sure the **target_room** option matches the exact room name in your project (e.g. `rm_main_menu`).
 
 ---
 
 ## Support
 
-- **API Documentation:** [api.glitch.fun/api/documentation](https://api.glitch.fun/api/documentation)
-- **Developer Discord:** [discord.gg/RPYU9KgEmU](https://discord.gg/RPYU9KgEmU)
-- **Platform:** [glitch.fun](https://glitch.fun)
-
----
-
-*Glitch Aegis v2.0 — Developed for the Glitch Gaming Platform. © 2026 Glitch Studios.*
+- **Dashboard**: [glitch.fun/games/admin](https://glitch.fun/games/admin)
+- **Documentation**: [docs.glitch.fun](https://docs.glitch.fun)
+- **Discord**: [discord.gg/RPYU9KgEmU](https://discord.gg/RPYU9KgEmU)
