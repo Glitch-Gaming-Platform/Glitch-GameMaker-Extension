@@ -15,15 +15,28 @@
 /// @description Initializes the Glitch Aegis system. Called automatically by obj_glitch_manager.
 ///              Reads extension options and detects the player's install_id.
 
+// --- Extension option helper ---
+#define _glitch_opt_bool
+/// @param _value
+/// @returns {bool}
+var _value = argument0;
+if (is_bool(_value)) return _value;
+if (is_real(_value)) return (_value != 0);
+if (is_string(_value)) {
+    var _s = string_lower(string_trim(_value));
+    return (_s == "true" || _s == "1" || _s == "yes" || _s == "on");
+}
+return false;
+
 // --- Load extension options ---
-global.glitch_title_id           = extension_get_option_value("GlitchAegis", "title_id");
-global.glitch_token              = extension_get_option_value("GlitchAegis", "title_token");
-global.glitch_auto_heartbeat     = (extension_get_option_value("GlitchAegis", "enable_auto_heartbeat") == "True");
-global.glitch_enforce_validation = (extension_get_option_value("GlitchAegis", "enforce_validation") == "True");
-global.glitch_enable_ach         = (extension_get_option_value("GlitchAegis", "enable_achievements") == "True");
-global.glitch_enable_lb          = (extension_get_option_value("GlitchAegis", "enable_leaderboards") == "True");
-global.glitch_enable_cloud       = (extension_get_option_value("GlitchAegis", "enable_cloud_saves") == "True");
-global.glitch_enable_steam       = (extension_get_option_value("GlitchAegis", "enable_steam_bridge") == "True");
+global.glitch_title_id           = string(extension_get_option_value("GlitchAegis", "title_id"));
+global.glitch_token              = string(extension_get_option_value("GlitchAegis", "title_token"));
+global.glitch_auto_heartbeat     = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_auto_heartbeat"));
+global.glitch_enforce_validation = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enforce_validation"));
+global.glitch_enable_ach         = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_achievements"));
+global.glitch_enable_lb          = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_leaderboards"));
+global.glitch_enable_cloud       = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_cloud_saves"));
+global.glitch_enable_steam       = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_steam_bridge"));
 
 // --- Runtime state ---
 global.glitch_install_id    = "";
