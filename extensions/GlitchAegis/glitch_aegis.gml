@@ -15,28 +15,15 @@
 /// @description Initializes the Glitch Aegis system. Called automatically by obj_glitch_manager.
 ///              Reads extension options and detects the player's install_id.
 
-// --- Extension option helper ---
-#define _glitch_opt_bool
-/// @param _value
-/// @returns {bool}
-var _value = argument0;
-if (is_bool(_value)) return _value;
-if (is_real(_value)) return (_value != 0);
-if (is_string(_value)) {
-    var _s = string_lower(string_trim(_value));
-    return (_s == "true" || _s == "1" || _s == "yes" || _s == "on");
-}
-return false;
-
 // --- Load extension options ---
-global.glitch_title_id           = string(extension_get_option_value("GlitchAegis", "title_id"));
-global.glitch_token              = string(extension_get_option_value("GlitchAegis", "title_token"));
-global.glitch_auto_heartbeat     = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_auto_heartbeat"));
-global.glitch_enforce_validation = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enforce_validation"));
-global.glitch_enable_ach         = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_achievements"));
-global.glitch_enable_lb          = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_leaderboards"));
-global.glitch_enable_cloud       = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_cloud_saves"));
-global.glitch_enable_steam       = _glitch_opt_bool(extension_get_option_value("GlitchAegis", "enable_steam_bridge"));
+global.glitch_title_id           = extension_get_option_value("GlitchAegis", "title_id");
+global.glitch_token              = extension_get_option_value("GlitchAegis", "title_token");
+global.glitch_auto_heartbeat     = (extension_get_option_value("GlitchAegis", "enable_auto_heartbeat") == "True");
+global.glitch_enforce_validation = (extension_get_option_value("GlitchAegis", "enforce_validation") == "True");
+global.glitch_enable_ach         = (extension_get_option_value("GlitchAegis", "enable_achievements") == "True");
+global.glitch_enable_lb          = (extension_get_option_value("GlitchAegis", "enable_leaderboards") == "True");
+global.glitch_enable_cloud       = (extension_get_option_value("GlitchAegis", "enable_cloud_saves") == "True");
+global.glitch_enable_steam       = (extension_get_option_value("GlitchAegis", "enable_steam_bridge") == "True");
 
 // --- Runtime state ---
 global.glitch_install_id    = "";
@@ -66,20 +53,36 @@ if (_dev_id != "") {
 }
 
 // --- Step 2: Detect install_id ---
-if (os_browser != browser_not_a_browser) {
-    global.glitch_install_id = glitch_js_get_url_param("install_id");
-} else {
-    var _count = parameter_count();
-    for (var i = 0; i < _count; i++) {
-        if (parameter_string(i) == "--install_id" && i + 1 < _count) {
-            global.glitch_install_id = parameter_string(i + 1);
-        }
+// Use GameMaker's built-in parameter APIs for both desktop and HTML5.
+// On HTML5, parameter_count()/parameter_string() expose URL query parameters.
+var _count = parameter_count();
+for (var i = 1; i <= _count; i++) {
+    var _param = string(parameter_string(i));
+    if (_param == "") continue;
+
+    // HTML5/GX-style query parameters typically arrive as key=value
+    if (string_pos("install_id=", _param) == 1) {
+        global.glitch_install_id = string_delete(_param, 1, string_length("install_id="));
+        break;
     }
-    // Also check environment variable
-    if (global.glitch_install_id == "") {
-        var _env = environment_get_variable("GLITCH_INSTALL_ID");
-        if (_env != "") global.glitch_install_id = _env;
+
+    // Be tolerant of a leading ? if the runner includes it
+    if (string_pos("?install_id=", _param) == 1) {
+        global.glitch_install_id = string_delete(_param, 1, string_length("?install_id="));
+        break;
     }
+
+    // Desktop CLI-style launch arguments: --install_id VALUE
+    if ((_param == "--install_id" || _param == "install_id") && i < _count) {
+        global.glitch_install_id = string(parameter_string(i + 1));
+        break;
+    }
+}
+
+// Also check environment variable on native targets
+if (global.glitch_install_id == "") {
+    var _env = environment_get_variable("GLITCH_INSTALL_ID");
+    if (_env != "") global.glitch_install_id = _env;
 }
 
 if (global.glitch_install_id != "") {
