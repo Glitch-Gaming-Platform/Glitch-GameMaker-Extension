@@ -8,6 +8,95 @@
 
 
 // =============================================================================
+//  0. OPTION NORMALIZATION HELPERS
+// =============================================================================
+
+#define _glitch_option_string_or_empty
+/// @description Reads a GlitchAegis extension option and returns a safe string.
+///              Non-string/object-like values are normalized to "".
+/// @param {string} _name
+/// @returns {string}
+
+var _name = argument0;
+var _raw  = extension_get_option_value("GlitchAegis", _name);
+
+if (is_string(_raw)) {
+    return string_trim(_raw);
+}
+
+if (is_real(_raw)) {
+    // In affected HTML5 builds, empty string options have sometimes arrived as 0.
+    if (_raw == 0) return "";
+    return string(_raw);
+}
+
+if (is_bool(_raw)) {
+    return _raw ? "true" : "";
+}
+
+// Do not attempt to stringify arrays / structs / undefined-like values.
+return "";
+
+
+#define _glitch_option_string
+/// @description Reads a GlitchAegis extension option as a safe string with fallback.
+/// @param {string} _name
+/// @param {string} _default
+/// @returns {string}
+
+var _name    = argument0;
+var _default = argument1;
+
+var _value = _glitch_option_string_or_empty(_name);
+if (_value != "") return _value;
+return _default;
+
+
+#define _glitch_option_bool
+/// @description Reads a GlitchAegis extension option as a bool with fallback.
+/// @param {string} _name
+/// @param {bool} _default
+/// @returns {bool}
+
+var _name    = argument0;
+var _default = argument1;
+var _raw     = extension_get_option_value("GlitchAegis", _name);
+
+if (is_bool(_raw)) return _raw;
+if (is_real(_raw)) return (_raw != 0);
+
+if (is_string(_raw)) {
+    var _text = string_lower(string_trim(_raw));
+    return (_text == "true" || _text == "1" || _text == "yes");
+}
+
+return _default;
+
+
+#define _glitch_clean_runtime_string
+/// @description Normalizes runtime values such as query params / env vars to a safe string.
+/// @param {*} _value
+/// @returns {string}
+
+var _value = argument0;
+
+if (is_string(_value)) {
+    return string_trim(_value);
+}
+
+if (is_real(_value)) {
+    if (_value == 0) return "";
+    return string(_value);
+}
+
+if (is_bool(_value)) {
+    return _value ? "true" : "";
+}
+
+return "";
+
+
+// =============================================================================
 //  1. INITIALIZATION
 // =============================================================================
 
@@ -16,14 +105,14 @@
 ///              Reads extension options and detects the player's install_id.
 
 // --- Load extension options ---
-global.glitch_title_id           = extension_get_option_value("GlitchAegis", "title_id");
-global.glitch_token              = extension_get_option_value("GlitchAegis", "title_token");
-global.glitch_auto_heartbeat     = (extension_get_option_value("GlitchAegis", "enable_auto_heartbeat") == "True");
-global.glitch_enforce_validation = (extension_get_option_value("GlitchAegis", "enforce_validation") == "True");
-global.glitch_enable_ach         = (extension_get_option_value("GlitchAegis", "enable_achievements") == "True");
-global.glitch_enable_lb          = (extension_get_option_value("GlitchAegis", "enable_leaderboards") == "True");
-global.glitch_enable_cloud       = (extension_get_option_value("GlitchAegis", "enable_cloud_saves") == "True");
-global.glitch_enable_steam       = (extension_get_option_value("GlitchAegis", "enable_steam_bridge") == "True");
+global.glitch_title_id           = _glitch_option_string("title_id", "");
+global.glitch_token              = _glitch_option_string("title_token", "");
+global.glitch_auto_heartbeat     = _glitch_option_bool("enable_auto_heartbeat", true);
+global.glitch_enforce_validation = _glitch_option_bool("enforce_validation", false);
+global.glitch_enable_ach         = _glitch_option_bool("enable_achievements", true);
+global.glitch_enable_lb          = _glitch_option_bool("enable_leaderboards", true);
+global.glitch_enable_cloud       = _glitch_option_bool("enable_cloud_saves", true);
+global.glitch_enable_steam       = _glitch_option_bool("enable_steam_bridge", false);
 
 // --- Runtime state ---
 global.glitch_install_id    = "";
@@ -45,10 +134,10 @@ global.glitch_steam_pending_stats  = ds_map_create();
 global.glitch_steam_pending_scores = ds_map_create();
 
 // --- Step 1: Check DevTestInstallId ---
-var _dev_id = extension_get_option_value("GlitchAegis", "dev_test_install_id");
+var _dev_id = _glitch_option_string_or_empty("dev_test_install_id");
 if (_dev_id != "") {
     global.glitch_install_id = _dev_id;
-    show_debug_message("Glitch Aegis [DEV]: Using DevTestInstallId = " + _dev_id);
+    show_debug_message("Glitch Aegis [DEV]: Using DevTestInstallId = " + string(_dev_id));
     return;
 }
 
@@ -57,36 +146,40 @@ if (_dev_id != "") {
 // On HTML5, parameter_count()/parameter_string() expose URL query parameters.
 var _count = parameter_count();
 for (var i = 1; i <= _count; i++) {
-    var _param = string(parameter_string(i));
+    var _param = _glitch_clean_runtime_string(parameter_string(i));
     if (_param == "") continue;
 
     // HTML5/GX-style query parameters typically arrive as key=value
     if (string_pos("install_id=", _param) == 1) {
-        global.glitch_install_id = string_delete(_param, 1, string_length("install_id="));
+        global.glitch_install_id = _glitch_clean_runtime_string(
+            string_delete(_param, 1, string_length("install_id="))
+        );
         break;
     }
 
     // Be tolerant of a leading ? if the runner includes it
     if (string_pos("?install_id=", _param) == 1) {
-        global.glitch_install_id = string_delete(_param, 1, string_length("?install_id="));
+        global.glitch_install_id = _glitch_clean_runtime_string(
+            string_delete(_param, 1, string_length("?install_id="))
+        );
         break;
     }
 
     // Desktop CLI-style launch arguments: --install_id VALUE
     if ((_param == "--install_id" || _param == "install_id") && i < _count) {
-        global.glitch_install_id = string(parameter_string(i + 1));
+        global.glitch_install_id = _glitch_clean_runtime_string(parameter_string(i + 1));
         break;
     }
 }
 
 // Also check environment variable on native targets
 if (global.glitch_install_id == "") {
-    var _env = environment_get_variable("GLITCH_INSTALL_ID");
+    var _env = _glitch_clean_runtime_string(environment_get_variable("GLITCH_INSTALL_ID"));
     if (_env != "") global.glitch_install_id = _env;
 }
 
 if (global.glitch_install_id != "") {
-    show_debug_message("Glitch Aegis: install_id = " + global.glitch_install_id);
+    show_debug_message("Glitch Aegis: install_id = " + string(global.glitch_install_id));
 } else {
     show_debug_message("Glitch Aegis: No install_id found.");
 }
@@ -95,6 +188,7 @@ if (global.glitch_install_id != "") {
 // =============================================================================
 //  INTERNAL HELPER: Build authorization headers
 // =============================================================================
+
 
 #define _glitch_headers
 /// @description Creates a ds_map with Authorization and Content-Type headers.

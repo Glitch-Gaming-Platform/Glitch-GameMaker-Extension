@@ -25,7 +25,7 @@ if (_id == validation_req) {
             ds_map_destroy(_data);
         }
         
-        show_debug_message("Glitch Aegis: License valid. Welcome, " + global.glitch_player_name + "!");
+        show_debug_message("Glitch Aegis: License valid. Welcome, " + string(global.glitch_player_name) + "!");
         _proceed = true;
         
     } else if (_code == 403) {
@@ -59,12 +59,16 @@ if (_id == validation_req) {
     
     // Navigate to target room if we should proceed
     if (_proceed) {
-        var _target_name  = extension_get_option_value("GlitchAegis", "target_room");
-        var _target_asset = asset_get_index(_target_name);
-        if (room_exists(_target_asset)) {
-            room_goto(_target_asset);
+        var _target_name  = _glitch_option_string("target_room", "");
+        if (_target_name != "") {
+            var _target_asset = asset_get_index(_target_name);
+            if (room_exists(_target_asset)) {
+                room_goto(_target_asset);
+            } else {
+                show_debug_message("Glitch Aegis: WARNING — Target room '" + string(_target_name) + "' not found.");
+            }
         } else {
-            show_debug_message("Glitch Aegis: WARNING — Target room '" + _target_name + "' not found.");
+            show_debug_message("Glitch Aegis: WARNING — target_room is empty.");
         }
     }
     

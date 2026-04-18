@@ -21,7 +21,7 @@ validation_req = glitch_validate_license();
 // 4. Start auto-heartbeat
 if (global.glitch_auto_heartbeat) {
     heartbeat_req = glitch_send_heartbeat();
-    alarm[0] = 60 * room_speed;
+    alarm[0] = 60 * game_get_speed(gamespeed_fps);
 }
 
 // 5. Load achievements if enabled
