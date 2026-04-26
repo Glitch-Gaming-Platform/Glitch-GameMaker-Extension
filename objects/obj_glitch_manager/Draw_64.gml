@@ -4,7 +4,9 @@
 // Draws on top of everything because this is a GUI event.
 // The overlay blocks interaction when EnforceValidation is ON.
 
-if (!global.glitch_error_active) exit;
+if (!variable_global_exists("glitch_error_active") || !global.glitch_error_active) exit;
+if (!variable_global_exists("glitch_error_message")) global.glitch_error_message = "";
+if (!variable_global_exists("glitch_enforce_validation")) global.glitch_enforce_validation = false;
 
 var _sw = display_get_gui_width();
 var _sh = display_get_gui_height();
@@ -47,7 +49,7 @@ draw_set_color(make_color_rgb(220, 220, 230));
 draw_set_halign(fa_center);
 
 // Split message on \n and draw each line
-var _lines = string_split(global.glitch_error_message, "\n");
+var _lines = string_split(string(global.glitch_error_message), "\n");
 var _line_height = 28;
 var _msg_y = _py + 72;
 
@@ -76,7 +78,12 @@ if (global.glitch_enforce_validation) {
     
     // Dismiss on key press (non-enforced only)
     if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space)) {
-        glitch_dismiss_error();
+        try {
+            glitch_dismiss_error();
+        } catch (_err) {
+            global.glitch_error_active = false;
+            global.glitch_error_message = "";
+        }
     }
 }
 

@@ -18,6 +18,7 @@
 /// @returns {string}
 
 var _name = argument0;
+if (!extension_exists("GlitchAegis")) return "";
 var _raw  = extension_get_option_value("GlitchAegis", _name);
 
 if (is_string(_raw)) {
@@ -60,6 +61,7 @@ return _default;
 
 var _name    = argument0;
 var _default = argument1;
+if (!extension_exists("GlitchAegis")) return _default;
 var _raw     = extension_get_option_value("GlitchAegis", _name);
 
 if (is_bool(_raw)) return _raw;
@@ -96,11 +98,41 @@ if (is_bool(_value)) {
 return "";
 
 
+
+
+#define _glitch_ensure_state
+/// @description Ensures all Glitch globals/maps exist before any public function reads them.
+
+if (!variable_global_exists("glitch_title_id")) global.glitch_title_id = "";
+if (!variable_global_exists("glitch_token")) global.glitch_token = "";
+if (!variable_global_exists("glitch_auto_heartbeat")) global.glitch_auto_heartbeat = false;
+if (!variable_global_exists("glitch_enforce_validation")) global.glitch_enforce_validation = false;
+if (!variable_global_exists("glitch_enable_ach")) global.glitch_enable_ach = false;
+if (!variable_global_exists("glitch_enable_lb")) global.glitch_enable_lb = false;
+if (!variable_global_exists("glitch_enable_cloud")) global.glitch_enable_cloud = false;
+if (!variable_global_exists("glitch_enable_steam")) global.glitch_enable_steam = false;
+if (!variable_global_exists("glitch_install_id")) global.glitch_install_id = "";
+if (!variable_global_exists("glitch_validated")) global.glitch_validated = false;
+if (!variable_global_exists("glitch_player_name")) global.glitch_player_name = "Guest";
+if (!variable_global_exists("glitch_error_active")) global.glitch_error_active = false;
+if (!variable_global_exists("glitch_error_message")) global.glitch_error_message = "";
+if (!variable_global_exists("glitch_base_url")) global.glitch_base_url = "https://api.glitch.fun/api/";
+if (!variable_global_exists("glitch_cloud_response")) global.glitch_cloud_response = "";
+if (!variable_global_exists("glitch_leaderboard_response")) global.glitch_leaderboard_response = "";
+if (!variable_global_exists("glitch_ach_loaded")) global.glitch_ach_loaded = false;
+
+if (!variable_global_exists("glitch_ach_cache") || !ds_exists(global.glitch_ach_cache, ds_type_map)) global.glitch_ach_cache = ds_map_create();
+if (!variable_global_exists("glitch_save_versions") || !ds_exists(global.glitch_save_versions, ds_type_map)) global.glitch_save_versions = ds_map_create();
+if (!variable_global_exists("glitch_steam_pending_stats") || !ds_exists(global.glitch_steam_pending_stats, ds_type_map)) global.glitch_steam_pending_stats = ds_map_create();
+if (!variable_global_exists("glitch_steam_pending_scores") || !ds_exists(global.glitch_steam_pending_scores, ds_type_map)) global.glitch_steam_pending_scores = ds_map_create();
+
+return true;
 // =============================================================================
 //  1. INITIALIZATION
 // =============================================================================
 
 #define glitch_init
+_glitch_ensure_state();
 /// @description Initializes the Glitch Aegis system. Called automatically by obj_glitch_manager.
 ///              Reads extension options and detects the player's install_id.
 
@@ -191,6 +223,7 @@ if (global.glitch_install_id != "") {
 
 
 #define _glitch_headers
+_glitch_ensure_state();
 /// @description Creates a ds_map with Authorization and Content-Type headers.
 /// @returns {ds_map} Headers map (caller must destroy it)
 
@@ -205,6 +238,7 @@ return _h;
 // =============================================================================
 
 #define glitch_send_heartbeat
+_glitch_ensure_state();
 /// @description Sends a 60-second playtime heartbeat. Returns HTTP request ID.
 
 if (global.glitch_install_id == "") {
@@ -228,6 +262,7 @@ return _req;
 // =============================================================================
 
 #define glitch_validate_license
+_glitch_ensure_state();
 /// @description Validates the player's Glitch license. Returns HTTP request ID.
 
 if (global.glitch_install_id == "") {
@@ -250,6 +285,7 @@ return _req;
 // =============================================================================
 
 #define glitch_load_achievements
+_glitch_ensure_state();
 /// @description Downloads the player's achievement list from the server.
 ///              Results arrive in the Async HTTP Event. Returns request ID.
 
@@ -265,6 +301,7 @@ return _req;
 
 
 #define glitch_report_achievement
+_glitch_ensure_state();
 /// @description Reports progress toward an achievement.
 ///              If the progress meets the threshold, Glitch unlocks it automatically.
 ///              The Aegis Bridge overlay shows a toast notification on unlock.
@@ -307,6 +344,7 @@ return _req;
 
 
 #define glitch_is_achievement_unlocked
+_glitch_ensure_state();
 /// @description Checks if an achievement is unlocked (uses local cache, instant).
 /// @param {string} _api_key  The achievement API key
 /// @returns {bool} true if unlocked
@@ -323,6 +361,7 @@ return false;
 
 
 #define glitch_get_achievement_progress
+_glitch_ensure_state();
 /// @description Gets the progress value of an achievement (local cache).
 /// @param {string} _api_key  The achievement API key
 /// @returns {real} Progress value, or 0 if not found
@@ -340,6 +379,7 @@ return 0;
 // =============================================================================
 
 #define glitch_submit_score
+_glitch_ensure_state();
 /// @description Submits a score to a leaderboard.
 /// @param {string} _board_key  The leaderboard API key from the dashboard (e.g. "high_score")
 /// @param {real}   _score      The numeric score to submit
@@ -378,6 +418,7 @@ return _req;
 
 
 #define glitch_get_leaderboard
+_glitch_ensure_state();
 /// @description Downloads leaderboard entries for a given board.
 ///              Results arrive in the Async HTTP Event.
 /// @param {string} _board_key  The leaderboard API key (e.g. "high_score")
@@ -399,6 +440,7 @@ return _req;
 // =============================================================================
 
 #define glitch_cloud_save
+_glitch_ensure_state();
 /// @description Saves game data to a Glitch cloud slot.
 ///              Uses buffer-based serialization for maximum compatibility.
 /// @param {real}   _slot   Slot number (0-99)
@@ -446,6 +488,7 @@ return _req;
 
 
 #define glitch_cloud_save_map
+_glitch_ensure_state();
 /// @description Convenience: saves a ds_map to a Glitch cloud slot.
 ///              Automatically encodes the map to JSON.
 /// @param {real}   _slot  Slot number (0-99)
@@ -459,6 +502,7 @@ return glitch_cloud_save(_slot, _json);
 
 
 #define glitch_cloud_load
+_glitch_ensure_state();
 /// @description Downloads all cloud save slots. The response arrives in Async HTTP.
 ///              Parse the response to find your slot by slot_index.
 /// @returns {real} HTTP request ID
@@ -478,6 +522,7 @@ return _req;
 
 
 #define glitch_cloud_parse_slot
+_glitch_ensure_state();
 /// @description Helper: Extracts a specific slot from the cloud save response JSON.
 ///              Returns the decoded payload string, or "" if the slot is empty.
 /// @param {string} _response_json  The raw JSON body from the Async HTTP event
@@ -525,6 +570,7 @@ return _result;
 // =============================================================================
 
 #define glitch_track_event
+_glitch_ensure_state();
 /// @description Tracks an in-game behavioral event.
 /// @param {string} _step_key   Where it happened (e.g. "level_1", "boss_fight")
 /// @param {string} _action_key What happened (e.g. "player_death", "completed")
@@ -553,6 +599,7 @@ return _req;
 // =============================================================================
 
 #define glitch_steam_set_achievement
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_set_achievement().
 ///              Buffers the achievement until glitch_steam_store_stats() is called.
 /// @param {string} _api_name  The achievement API name (must match Glitch dashboard key)
@@ -563,6 +610,7 @@ show_debug_message("Glitch Steam Bridge: SetAchievement('" + _api_name + "') buf
 
 
 #define glitch_steam_set_stat_int
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_set_stat_int().
 /// @param {string} _stat_name  The stat name
 /// @param {real}   _value      The value
@@ -573,6 +621,7 @@ ds_map_replace(global.glitch_steam_pending_stats, _stat_name, _value);
 
 
 #define glitch_steam_set_stat_float
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_set_stat_float().
 /// @param {string} _stat_name  The stat name
 /// @param {real}   _value      The value
@@ -583,6 +632,7 @@ ds_map_replace(global.glitch_steam_pending_stats, _stat_name, _value);
 
 
 #define glitch_steam_upload_score
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_upload_score().
 ///              Buffers the score until glitch_steam_store_stats() is called.
 /// @param {string} _board_key  The leaderboard name (must match Glitch dashboard key)
@@ -594,6 +644,7 @@ ds_map_replace(global.glitch_steam_pending_scores, _board_key, _score);
 
 
 #define glitch_steam_get_achievement
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_get_achievement().
 ///              Checks the local Glitch achievement cache.
 /// @param {string} _api_name  The achievement API name
@@ -603,6 +654,7 @@ return glitch_is_achievement_unlocked(argument0);
 
 
 #define glitch_steam_store_stats
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_stats_store().
 ///              Flushes all buffered stats and scores to Glitch.
 ///              Call this after SetAchievement / SetStat / UploadScore.
@@ -640,6 +692,7 @@ ds_map_clear(global.glitch_steam_pending_scores);
 
 
 #define glitch_steam_request_stats
+_glitch_ensure_state();
 /// @description Drop-in replacement for steam_stats_request().
 ///              Refreshes the achievement cache from Glitch.
 
@@ -651,6 +704,7 @@ glitch_load_achievements();
 // =============================================================================
 
 #define glitch_show_error
+_glitch_ensure_state();
 /// @description Activates the error overlay.
 /// @param {string} _message  The error message
 
@@ -660,6 +714,7 @@ show_debug_message("Glitch Aegis ERROR: " + argument0);
 
 
 #define glitch_dismiss_error
+_glitch_ensure_state();
 /// @description Dismisses the error overlay (only works if enforce_validation is OFF).
 
 if (!global.glitch_enforce_validation) {
@@ -692,6 +747,7 @@ return _uuid;
 
 
 #define _glitch_parse_achievements_response
+_glitch_ensure_state();
 /// @description Internal: Parses the achievements JSON response and populates the cache.
 /// @param {string} _json  The raw JSON response body
 
