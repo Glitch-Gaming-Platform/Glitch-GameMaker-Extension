@@ -80,6 +80,7 @@ if (global.glitch_enforce_validation) {
     if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space)) {
         try {
             glitch_dismiss_error();
+            _glitch_continue_to_target_room("error dismissed");
         } catch (_err) {
             global.glitch_error_active = false;
             global.glitch_error_message = "";

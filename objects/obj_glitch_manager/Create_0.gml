@@ -27,6 +27,7 @@ global.glitch_error_message        = variable_global_exists("glitch_error_messag
 global.glitch_base_url             = variable_global_exists("glitch_base_url") ? global.glitch_base_url : "https://api.glitch.fun/api/";
 global.glitch_cloud_response       = variable_global_exists("glitch_cloud_response") ? global.glitch_cloud_response : "";
 global.glitch_leaderboard_response = variable_global_exists("glitch_leaderboard_response") ? global.glitch_leaderboard_response : "";
+global.glitch_progression_response = variable_global_exists("glitch_progression_response") ? global.glitch_progression_response : "";
 
 if (!variable_global_exists("glitch_ach_cache") || !ds_exists(global.glitch_ach_cache, ds_type_map)) {
     global.glitch_ach_cache = ds_map_create();
@@ -40,6 +41,15 @@ if (!variable_global_exists("glitch_steam_pending_stats") || !ds_exists(global.g
 if (!variable_global_exists("glitch_steam_pending_scores") || !ds_exists(global.glitch_steam_pending_scores, ds_type_map)) {
     global.glitch_steam_pending_scores = ds_map_create();
 }
+if (!variable_global_exists("glitch_pending_progression_reqs") || !ds_exists(global.glitch_pending_progression_reqs, ds_type_map)) {
+    global.glitch_pending_progression_reqs = ds_map_create();
+}
+if (!variable_global_exists("glitch_pending_leaderboard_reqs") || !ds_exists(global.glitch_pending_leaderboard_reqs, ds_type_map)) {
+    global.glitch_pending_leaderboard_reqs = ds_map_create();
+}
+if (!variable_global_exists("glitch_pending_achievement_reqs") || !ds_exists(global.glitch_pending_achievement_reqs, ds_type_map)) {
+    global.glitch_pending_achievement_reqs = ds_map_create();
+}
 
 // 3. Initialize extension. If the extension function is missing/misregistered, do not crash the game.
 var _glitch_ready = false;
@@ -48,7 +58,8 @@ if (extension_exists("GlitchAegis")) {
         glitch_init();
         _glitch_ready = true;
     } catch (_err) {
-        show_debug_message("Glitch Aegis: WARNING — glitch_init() failed or was not registered. Continuing without Glitch services.");
+        show_debug_message("Glitch Aegis: WARNING — glitch_init() failed. Continuing without Glitch services.");
+        show_debug_message("Glitch Aegis: init error = " + string(_err));
         global.glitch_error_active = false;
     }
 } else {
@@ -62,14 +73,38 @@ if (_glitch_ready) {
     } catch (_err) {
         validation_req = -1;
         show_debug_message("Glitch Aegis: WARNING — validation skipped because glitch_validate_license() failed.");
+        show_debug_message("Glitch Aegis: validation error = " + string(_err));
     }
+}
+
+// If validation did not start, no Async HTTP response will ever arrive.
+// In non-enforced mode, continue immediately so rm_glitch_init cannot black-screen forever.
+if (validation_req == -1 && !global.glitch_enforce_validation) {
+    try {
+        _glitch_continue_to_target_room("validation skipped");
+    } catch (_err) {
+        show_debug_message("Glitch Aegis: WARNING — could not continue to target room after skipped validation.");
+        show_debug_message("Glitch Aegis: continue error = " + string(_err));
+    }
+    exit;
+}
+
+// If the whole extension failed, still continue in non-enforced mode.
+if (!_glitch_ready && !global.glitch_enforce_validation) {
+    try {
+        _glitch_continue_to_target_room("extension unavailable");
+    } catch (_err) {
+        show_debug_message("Glitch Aegis: WARNING — could not continue to target room after extension failure.");
+        show_debug_message("Glitch Aegis: continue error = " + string(_err));
+    }
+    exit;
 }
 
 // 5. Start auto-heartbeat.
 if (_glitch_ready && global.glitch_auto_heartbeat) {
     try {
         heartbeat_req = glitch_send_heartbeat();
-        alarm[0] = 60 * game_get_speed(gamespeed_fps);
+        if (heartbeat_req != -1) alarm[0] = 60 * game_get_speed(gamespeed_fps);
     } catch (_err) {
         heartbeat_req = -1;
         alarm[0] = -1;

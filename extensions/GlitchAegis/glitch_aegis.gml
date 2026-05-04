@@ -1,5 +1,5 @@
 // =============================================================================
-// Glitch Aegis Extension v3.0 — GML Functions
+// Glitch Aegis Extension v3.0.2 — GML Functions
 // https://github.com/Glitch-Gaming-Platform/Glitch-GameMaker-Extension
 // =============================================================================
 // Features: Heartbeat/Payouts, DRM, Achievements, Leaderboards,
@@ -69,7 +69,14 @@ if (is_real(_raw)) return (_raw != 0);
 
 if (is_string(_raw)) {
     var _text = string_lower(string_trim(_raw));
-    return (_text == "true" || _text == "1" || _text == "yes");
+
+    if (_text == "true" || _text == "1" || _text == "yes" || _text == "on" || _text == "enabled") {
+        return true;
+    }
+
+    if (_text == "false" || _text == "0" || _text == "no" || _text == "off" || _text == "disabled") {
+        return false;
+    }
 }
 
 return _default;
@@ -119,12 +126,16 @@ if (!variable_global_exists("glitch_error_message")) global.glitch_error_message
 if (!variable_global_exists("glitch_base_url")) global.glitch_base_url = "https://api.glitch.fun/api/";
 if (!variable_global_exists("glitch_cloud_response")) global.glitch_cloud_response = "";
 if (!variable_global_exists("glitch_leaderboard_response")) global.glitch_leaderboard_response = "";
+if (!variable_global_exists("glitch_progression_response")) global.glitch_progression_response = "";
 if (!variable_global_exists("glitch_ach_loaded")) global.glitch_ach_loaded = false;
 
 if (!variable_global_exists("glitch_ach_cache") || !ds_exists(global.glitch_ach_cache, ds_type_map)) global.glitch_ach_cache = ds_map_create();
 if (!variable_global_exists("glitch_save_versions") || !ds_exists(global.glitch_save_versions, ds_type_map)) global.glitch_save_versions = ds_map_create();
 if (!variable_global_exists("glitch_steam_pending_stats") || !ds_exists(global.glitch_steam_pending_stats, ds_type_map)) global.glitch_steam_pending_stats = ds_map_create();
 if (!variable_global_exists("glitch_steam_pending_scores") || !ds_exists(global.glitch_steam_pending_scores, ds_type_map)) global.glitch_steam_pending_scores = ds_map_create();
+if (!variable_global_exists("glitch_pending_progression_reqs") || !ds_exists(global.glitch_pending_progression_reqs, ds_type_map)) global.glitch_pending_progression_reqs = ds_map_create();
+if (!variable_global_exists("glitch_pending_leaderboard_reqs") || !ds_exists(global.glitch_pending_leaderboard_reqs, ds_type_map)) global.glitch_pending_leaderboard_reqs = ds_map_create();
+if (!variable_global_exists("glitch_pending_achievement_reqs") || !ds_exists(global.glitch_pending_achievement_reqs, ds_type_map)) global.glitch_pending_achievement_reqs = ds_map_create();
 
 return true;
 // =============================================================================
@@ -151,19 +162,57 @@ global.glitch_install_id    = "";
 global.glitch_validated     = false;
 global.glitch_player_name   = "Guest";
 global.glitch_error_active  = false;
-global.glitch_error_message = "";
-global.glitch_base_url      = "https://api.glitch.fun/api/";
+global.glitch_error_message       = "";
+global.glitch_base_url           = "https://api.glitch.fun/api/";
+global.glitch_progression_response = "";
+global.glitch_leaderboard_response = "";
 
 // --- Achievement cache ---
-global.glitch_ach_cache  = ds_map_create();  // api_key -> ds_map { status, progress, threshold, name }
+if (ds_exists(global.glitch_ach_cache, ds_type_map)) {
+    ds_map_clear(global.glitch_ach_cache);
+} else {
+    global.glitch_ach_cache = ds_map_create();
+}
 global.glitch_ach_loaded = false;
 
 // --- Cloud save version tracking ---
-global.glitch_save_versions = ds_map_create();  // slot_index -> version number
+if (ds_exists(global.glitch_save_versions, ds_type_map)) {
+    ds_map_clear(global.glitch_save_versions);
+} else {
+    global.glitch_save_versions = ds_map_create();
+}
 
 // --- Steam bridge pending state ---
-global.glitch_steam_pending_stats  = ds_map_create();
-global.glitch_steam_pending_scores = ds_map_create();
+if (ds_exists(global.glitch_steam_pending_stats, ds_type_map)) {
+    ds_map_clear(global.glitch_steam_pending_stats);
+} else {
+    global.glitch_steam_pending_stats = ds_map_create();
+}
+
+if (ds_exists(global.glitch_steam_pending_scores, ds_type_map)) {
+    ds_map_clear(global.glitch_steam_pending_scores);
+} else {
+    global.glitch_steam_pending_scores = ds_map_create();
+}
+
+// --- Async request tracking ---
+if (ds_exists(global.glitch_pending_progression_reqs, ds_type_map)) {
+    ds_map_clear(global.glitch_pending_progression_reqs);
+} else {
+    global.glitch_pending_progression_reqs = ds_map_create();
+}
+
+if (ds_exists(global.glitch_pending_leaderboard_reqs, ds_type_map)) {
+    ds_map_clear(global.glitch_pending_leaderboard_reqs);
+} else {
+    global.glitch_pending_leaderboard_reqs = ds_map_create();
+}
+
+if (ds_exists(global.glitch_pending_achievement_reqs, ds_type_map)) {
+    ds_map_clear(global.glitch_pending_achievement_reqs);
+} else {
+    global.glitch_pending_achievement_reqs = ds_map_create();
+}
 
 // --- Step 1: Check DevTestInstallId ---
 var _dev_id = _glitch_option_string_or_empty("dev_test_install_id");
@@ -204,10 +253,21 @@ for (var i = 1; i <= _count; i++) {
     }
 }
 
-// Also check environment variable on native targets
+// Also check environment variable on native targets.
 if (global.glitch_install_id == "") {
     var _env = _glitch_clean_runtime_string(environment_get_variable("GLITCH_INSTALL_ID"));
     if (_env != "") global.glitch_install_id = _env;
+}
+
+// HTML5 exports are safest when reading the real browser query string directly.
+// The JS bridge function is listed in the extension asset and returns "" outside HTML5.
+if (global.glitch_install_id == "") {
+    try {
+        var _js_install_id = _glitch_clean_runtime_string(glitch_js_get_url_param("install_id"));
+        if (_js_install_id != "") global.glitch_install_id = _js_install_id;
+    } catch (_err) {
+        // Non-HTML targets or old builds may not have the JS bridge. That is okay.
+    }
 }
 
 if (global.glitch_install_id != "") {
@@ -231,6 +291,58 @@ var _h = ds_map_create();
 ds_map_add(_h, "Authorization", "Bearer " + global.glitch_token);
 ds_map_add(_h, "Content-Type",  "application/json");
 return _h;
+
+
+// =============================================================================
+//  INTERNAL HELPER: Continue from the init room into the configured game room
+// =============================================================================
+
+#define _glitch_continue_to_target_room
+_glitch_ensure_state();
+/// @description Safely moves out of rm_glitch_init. Returns true if a room change was queued.
+/// @param {string} _reason  Debug reason for the transition.
+/// @returns {bool}
+
+var _reason = argument0;
+var _target_name = "";
+
+try {
+    _target_name = _glitch_option_string("target_room", "");
+} catch (_err) {
+    _target_name = "";
+}
+
+if (_target_name != "") {
+    var _target_asset = asset_get_index(_target_name);
+    if (_target_asset != -1 && room_exists(_target_asset)) {
+        if (_target_asset == room) {
+            show_debug_message("Glitch Aegis: WARNING — target_room points to the current init room: " + string(_target_name));
+        } else {
+            show_debug_message("Glitch Aegis: Continuing to target_room '" + string(_target_name) + "' (" + string(_reason) + ").");
+            room_goto(_target_asset);
+            return true;
+        }
+    } else {
+        show_debug_message("Glitch Aegis: WARNING — target_room '" + string(_target_name) + "' was not found.");
+    }
+} else {
+    show_debug_message("Glitch Aegis: WARNING — target_room option is empty.");
+}
+
+// Fallback: use the next room in the Room Manager. This prevents a black screen
+// when the option is empty/missing but rm_glitch_init is correctly first.
+var _next_room = room_next(room);
+if (_next_room != -1 && room_exists(_next_room)) {
+    show_debug_message("Glitch Aegis: Continuing to next room in Room Manager (" + string(_reason) + ").");
+    room_goto(_next_room);
+    return true;
+}
+
+// Last resort: show a visible error instead of silently sitting on a black room.
+global.glitch_error_active = true;
+global.glitch_error_message = "Glitch Aegis could not find the game room.\n\nSet the GlitchAegis target_room option, or put your game room immediately after rm_glitch_init in the Room Manager.";
+show_debug_message("Glitch Aegis: ERROR — no target room and no next room. Startup cannot continue.");
+return false;
 
 
 // =============================================================================
@@ -295,6 +407,9 @@ var _url = global.glitch_base_url + "titles/" + global.glitch_title_id
          + "/installs/" + global.glitch_install_id + "/achievements";
 var _headers = _glitch_headers();
 var _req = http_request(_url, "GET", _headers, "");
+if (_req != -1) {
+    ds_map_replace(global.glitch_pending_achievement_reqs, string(_req), "achievements");
+}
 ds_map_destroy(_headers);
 show_debug_message("Glitch Aegis: Loading achievements...");
 return _req;
@@ -305,7 +420,7 @@ _glitch_ensure_state();
 /// @description Reports progress toward an achievement.
 ///              If the progress meets the threshold, Glitch unlocks it automatically.
 ///              The Aegis Bridge overlay shows a toast notification on unlock.
-/// @param {string} _api_key  The achievement nickname from the dashboard (e.g. "boss_killed")
+/// @param {string} _api_key  The stat/progression key the achievement tracks (often the same as the achievement key, e.g. "boss_killed")
 /// @param {real}   _value    The progress value to report. Use 1 for simple unlocks.
 /// @returns {real} HTTP request ID, or -1 if no session
 
@@ -325,18 +440,21 @@ var _headers = _glitch_headers();
 var _stats = ds_map_create();
 ds_map_add(_stats, _api_key, _value);
 var _payload = ds_map_create();
-ds_map_add(_payload, "stats", _stats);
+ds_map_add_map(_payload, "stats", _stats);
 var _body = ds_map_create();
 ds_map_add(_body, "idempotency_key", _glitch_uuid());
-ds_map_add(_body, "payload", _payload);
+ds_map_add_map(_body, "payload", _payload);
 
 var _json = json_encode(_body);
 var _req = http_request(_url, "POST", _headers, _json);
 
+if (_req != -1) {
+    ds_map_replace(global.glitch_pending_progression_reqs, string(_req), "achievement");
+    global.glitch_progression_response = "";
+}
+
 ds_map_destroy(_headers);
-// Note: json_encode handles nested maps, but we must still clean up
-ds_map_destroy(_stats);
-ds_map_destroy(_payload);
+// _body owns the nested payload/stats maps because they were added with ds_map_add_map().
 ds_map_destroy(_body);
 
 show_debug_message("Glitch Aegis: Achievement progress sent: " + _api_key + " = " + string(_value));
@@ -400,17 +518,21 @@ var _headers = _glitch_headers();
 var _scores = ds_map_create();
 ds_map_add(_scores, _board_key, _score);
 var _payload = ds_map_create();
-ds_map_add(_payload, "scores", _scores);
+ds_map_add_map(_payload, "scores", _scores);
 var _body = ds_map_create();
 ds_map_add(_body, "idempotency_key", _glitch_uuid());
-ds_map_add(_body, "payload", _payload);
+ds_map_add_map(_body, "payload", _payload);
 
 var _json = json_encode(_body);
 var _req = http_request(_url, "POST", _headers, _json);
 
+if (_req != -1) {
+    ds_map_replace(global.glitch_pending_progression_reqs, string(_req), "leaderboard_score");
+    global.glitch_progression_response = "";
+}
+
 ds_map_destroy(_headers);
-ds_map_destroy(_scores);
-ds_map_destroy(_payload);
+// _body owns the nested payload/scores maps because they were added with ds_map_add_map().
 ds_map_destroy(_body);
 
 show_debug_message("Glitch Aegis: Score submitted: " + _board_key + " = " + string(_score));
@@ -430,6 +552,10 @@ var _url = global.glitch_base_url + "titles/" + global.glitch_title_id
          + "/leaderboards/" + _board_key;
 var _headers = _glitch_headers();
 var _req = http_request(_url, "GET", _headers, "");
+if (_req != -1) {
+    ds_map_replace(global.glitch_pending_leaderboard_reqs, string(_req), _board_key);
+    global.glitch_leaderboard_response = "";
+}
 ds_map_destroy(_headers);
 show_debug_message("Glitch Aegis: Downloading leaderboard: " + _board_key);
 return _req;
@@ -665,17 +791,29 @@ if (ds_map_size(global.glitch_steam_pending_stats) > 0) {
              + "/installs/" + global.glitch_install_id + "/submit";
     var _headers = _glitch_headers();
     
+    // Copy the pending stats into a child map so json_encode() can mark it correctly.
+    var _stats = ds_map_create();
+    var _stat_key = ds_map_find_first(global.glitch_steam_pending_stats);
+    while (is_string(_stat_key)) {
+        ds_map_add(_stats, _stat_key, ds_map_find_value(global.glitch_steam_pending_stats, _stat_key));
+        _stat_key = ds_map_find_next(global.glitch_steam_pending_stats, _stat_key);
+    }
+
     var _payload = ds_map_create();
-    ds_map_add(_payload, "stats", global.glitch_steam_pending_stats);
+    ds_map_add_map(_payload, "stats", _stats);
     var _body = ds_map_create();
     ds_map_add(_body, "idempotency_key", _glitch_uuid());
-    ds_map_add(_body, "payload", _payload);
-    
-    http_request(_url, "POST", _headers, json_encode(_body));
+    ds_map_add_map(_body, "payload", _payload);
+
+    var _req = http_request(_url, "POST", _headers, json_encode(_body));
+    if (_req != -1) {
+        ds_map_replace(global.glitch_pending_progression_reqs, string(_req), "steam_stats");
+        global.glitch_progression_response = "";
+    }
     ds_map_destroy(_headers);
-    ds_map_destroy(_payload);
+    // _body owns the nested payload/stats maps because they were added with ds_map_add_map().
     ds_map_destroy(_body);
-    
+
     // Clear pending
     ds_map_clear(global.glitch_steam_pending_stats);
     show_debug_message("Glitch Steam Bridge: Stats flushed to Glitch.");
@@ -771,18 +909,31 @@ for (var i = 0; i < ds_list_size(_arr); i++) {
     if (!ds_exists(_item, ds_type_map)) continue;
     
     var _api_key = "";
-    if (ds_map_exists(_item, "api_key")) _api_key = ds_map_find_value(_item, "api_key");
+
+    // Some API responses put api_key on the player-achievement row.
+    if (ds_map_exists(_item, "api_key")) {
+        _api_key = string(ds_map_find_value(_item, "api_key"));
+    }
+
+    // The documented response nests the definition under achievement.api_key.
+    if (_api_key == "" && ds_map_exists(_item, "achievement")) {
+        var _ach_def = ds_map_find_value(_item, "achievement");
+        if (ds_exists(_ach_def, ds_type_map) && ds_map_exists(_ach_def, "api_key")) {
+            _api_key = string(ds_map_find_value(_ach_def, "api_key"));
+        }
+    }
+
     if (_api_key == "") continue;
     
     var _status = "locked";
-    if (ds_map_exists(_item, "status")) _status = ds_map_find_value(_item, "status");
+    if (ds_map_exists(_item, "status")) _status = string(ds_map_find_value(_item, "status"));
     
     var _progress = 0;
     if (ds_map_exists(_item, "progress_value")) _progress = ds_map_find_value(_item, "progress_value");
     
-    // Store status and progress with predictable key names
-    ds_map_add(global.glitch_ach_cache, _api_key, _status);
-    ds_map_add(global.glitch_ach_cache, _api_key + "_progress", _progress);
+    // Store status and progress with predictable key names.
+    ds_map_replace(global.glitch_ach_cache, _api_key, _status);
+    ds_map_replace(global.glitch_ach_cache, _api_key + "_progress", _progress);
 }
 
 global.glitch_ach_loaded = true;
